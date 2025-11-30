@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Defuse the Bomb Game</title>
+
+<style>
+    body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background: radial-gradient(circle at top, #ff9a9e, #fad0c4);
+        font-family: Arial, sans-serif;
+        overflow: hidden;
+    }
+
+    h1 {
+        color: #4b2e83;
+        z-index: 10;
+    }
+
+    #hearts {
+        font-size: 32px;
+        margin-bottom: 10px;
+        z-index: 10;
+    }
+
+    .bomb {
+        width: 250px;
+        height: 250px;
+        background: #333;
+        border-radius: 50%;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin: 20px;
+        box-shadow: 0 0 30px rgba(0,0,0,0.7);
+        z-index: 5;
+    }
+
+    .wire {
+        width: 150px;
+        height: 15px;
+        margin: 8px 0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .wire:hover {
+        transform: scale(1.1);
+    }
+
+    .wire.red { background: red; }
+    .wire.blue { background: blue; }
+    .wire.green { background: green; }
+    .wire.yellow { background: yellow; }
+
+    #message {
+        margin-top: 20px;
+        font-size: 18px;
+        font-weight: bold;
+        z-index: 10;
+    }
+
+    #timer {
+        font-size: 20px;
+        margin-top: 10px;
+        color: #e74c3c;
+        z-index: 10;
+    }
+
+    #retryBtn {
+        margin-top: 15px;
+        padding: 10px 20px;
+        font-size: 16px;
+        border: none;
+        border-radius: 12px;
+        background-color: #8e6c8a;
+        color: #fff;
+        cursor: pointer;
+        display: none;
+        transition: 0.3s;
+        z-index: 10;
+    }
+
+    #retryBtn:hover {
+        background-color: #b490b9;
+    }
+
+    /* Video overlays */
+    #explosionVideo, #victoryVideo {
+        position: fixed;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
+        background: black;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+    }
+
+    #explosionVideo video, #victoryVideo video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+</style>
+</head>
+<body>
+
+<h1>Defuse the Bomb!</h1>
+
+<div id="hearts">❤️❤️❤️</div>  <!-- HEARTS DISPLAY -->
+
+<div class="bomb">
+    <div class="wire red"></div>
+    <div class="wire blue"></div>
+    <div class="wire green"></div>
+    <div class="wire yellow"></div>
+</div>
+
+<div id="timer">Time left: 15s</div>
+<div id="message"></div>
+<button id="retryBtn">Try Again</button>
+
+<!-- Sounds -->
+<audio id="tickSound" src="https://www.soundjay.com/clock/sounds/clock-ticking-1.mp3" preload="auto"></audio>
+<audio id="boomSound" src="https://www.soundjay.com/explosion/sounds/explosion-01.mp3" preload="auto"></audio>
+<audio id="winSound" src="https://www.soundjay.com/button/sounds/button-3.mp3" preload="auto"></audio>
+
+<!-- Explosion Video Overlay -->
+<div id="explosionVideo">
+    <video id="explVideo" src="boom.mp4" autoplay=""></video>
+</div>
+
+<!-- Victory Video Overlay -->
+<div id="victoryVideo">
+    <video id="winVideo" src="palakpak.mp4" autoplay=""></video>
+</div>
+
+<script>
+let wires = document.querySelectorAll('.wire');
+let message = document.getElementById('message');
+let timerDisplay = document.getElementById('timer');
+let retryBtn = document.getElementById('retryBtn');
+let heartsDisplay = document.getElementById('hearts');
+
+let explosionVideo = document.getElementById('explosionVideo');
+let explVideo = document.getElementById('explVideo');
+let victoryVideo = document.getElementById('victoryVideo');
+let winVideo = document.getElementById('winVideo');
+
+let tickSound = document.getElementById('tickSound');
+let boomSound = document.getElementById('boomSound');
+let winSound = document.getElementById('winSound');
+
+let timeLeft, timer, correctWire;
+let hearts = 3; // ❤️❤️❤️ STARTING HEARTS
+
+function updateHearts() {
+    heartsDisplay.textContent = "❤️".repeat(hearts);
+}
+
+function startGame() {
+    hearts = 3;
+    updateHearts();
+
+    timeLeft = 15;
+    timerDisplay.textContent = `Time left: ${timeLeft}s`;
+    message.textContent = '';
+    retryBtn.style.display = 'none';
+    explosionVideo.style.display = 'none';
+    victoryVideo.style.display = 'none';
+
+    wires.forEach(w => w.style.pointerEvents = 'auto');
+
+    const wireColors = ['red','blue','green','yellow'];
+    correctWire = wireColors[Math.floor(Math.random()*wireColors.length)];
+
+    clearInterval(timer);
+    tickSound.currentTime = 0;
+    tickSound.loop = true;
+    tickSound.play();
+
+    timer = setInterval(() => {
+        timeLeft--;
+        timerDisplay.textContent = `Time left: ${timeLeft}s`;
+
+        if(timeLeft <= 0){
+            endGame(false, "💥 Boom! Time's up!");
+        }
+    }, 1000);
+}
+
+function showExplosionVideo(){
+    explosionVideo.style.display = 'flex';
+    explVideo.currentTime = 0;
+    explVideo.play();
+    boomSound.play();
+    explVideo.onended = () => {
+        explosionVideo.style.display = 'none';
+        retryBtn.style.display = 'block';
+    }
+}
+
+function showVictoryVideo(){
+    victoryVideo.style.display = 'flex';
+    winVideo.currentTime = 0;
+    winVideo.play();
+    winSound.play();
+    winVideo.onended = () => {
+        victoryVideo.style.display = 'none';
+        retryBtn.style.display = 'block';
+    }
+}
+
+function endGame(win, msg){
+    clearInterval(timer);
+    tickSound.pause();
+    wires.forEach(w => w.style.pointerEvents = 'none');
+    message.textContent = msg;
+
+    if(win){
+        showVictoryVideo();
+    } else {
+        showExplosionVideo();
+    }
+}
+
+wires.forEach(wire => {
+    wire.addEventListener('click', () => {
+        if (wire.classList.contains(correctWire)) {
+            endGame(true, "🎉 Bomb defused! You win!");
+        } else {
+            hearts--;
+            updateHearts();
+
+            if (hearts > 0) {
+                message.textContent = `❌ Wrong wire! Hearts left: ${hearts}`;
+            } else {
+                endGame(false, "💥 Boom! No hearts left!");
+            }
+        }
+    });
+});
+
+retryBtn.addEventListener('click', startGame);
+
+startGame();
+</script>
+
+</body>
+</html>
